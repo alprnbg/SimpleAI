@@ -75,8 +75,8 @@ class Trainer:
             if k.startswith("train") and k!="train_loss":
                 v[0].update(v[1](output, batch["target"]), batch_size)
     
-    def save_checkpoint(self):
-        torch.save(self.model.state_dict(), os.path.join(self.log_folder, "model.pth"))
+    def save_checkpoint(self, name):
+        torch.save(self.model.state_dict(), os.path.join(self.log_folder, f"{name}.pth"))
     
     def debug_epoch(self):
         os.makedirs(os.path.join(self.log_folder, "debug_data"))
@@ -109,6 +109,7 @@ def run_training(config, log_folder, trial=None):
     for e in range(1, config["max_epoch"]+1):
         print("----- Epoch {} -----".format(e))
         epoch_logs = trainer.train_epoch(e)
+        trainer.save_checkpoint("last")
         current_val = epoch_logs[config["goal_metric"]][0].avg
         improvement = True if (best_val is None) \
                 or (config["direction"] == "minimize" and current_val<best_val) \
@@ -117,9 +118,9 @@ def run_training(config, log_folder, trial=None):
         if improvement:
             best_val = current_val
             patience = 0
-            trainer.save_checkpoint()
+            trainer.save_checkpoint("best")
             print(f"Improvement at epoch {e} with best value of {config['goal_metric']}={best_val}")
-            print(f"Model saved to {os.path.join(trainer.log_folder, 'model.pth')}")
+            print(f"Model saved to {os.path.join(trainer.log_folder)}")
         else:
             patience += 1
         # early stop
